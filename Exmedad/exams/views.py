@@ -1,13 +1,14 @@
 import pypdf
 import json
-import re
-from google import genai
-from google.genai import types
+from openai import OpenAI
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import ExamenHistorial, ParametroExamen
 
-# Inicializamos el cliente moderno de Google GenAI con tu API Key
-client = genai.Client(api_key="AQ.Ab8RN6KkA1_iuVC114iQ4wOVid58-MfBaucHLlvG6GbuxtmHnA")
+# Inicializamos el cliente apuntando a Groq con tu API Key de Groq
+client = OpenAI(
+    api_key="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",  # Reemplaza con tu clave que empieza por gsk_
+    base_url="https://api.groq.com/openai/v1"
+)
 
 def subir_examen(request):
     if request.method == 'POST' and request.FILES.get('archivo_pdf'):
@@ -22,48 +23,38 @@ def subir_examen(request):
             texto_pdf = "Error al leer el PDF"
 
         prompt = f"""
-        Eres un asistente médico amigable para adultos mayores. Analiza el siguiente texto extraído de un examen médico:
+        Eres un asistente médico amigable para adultos mayores. Analiza el siguiente texto extraído de un examen médico (puede ser de laboratorio con números o un informe descriptivo como imagenología/biopsia):
         ---
         {texto_pdf}
         ---
-        Necesito que identifiques los parámetros médicos principales y me devuelvas UNICAMENTE un objeto JSON válido (sin texto adicional ni bloques de markdown si es posible) con esta estructura exacta:
+        Necesito que identifiques los puntos clave, hallazgos o parámetros principales y devuelvas un objeto JSON válido con esta estructura exacta:
         {{
-            "titulo": "Nombre del examen",
-            "resumen_general": "Un resumen corto y muy sencillo para un adulto mayor",
+            "titulo": "Nombre del examen o estudio",
+            "resumen_general": "Un resumen corto y muy sencillo para que un adulto mayor entienda el resultado global",
             "parametros": [
                 {{
-                    "nombre": "Nombre del parámetro (ej: Glicemia)",
-                    "valor": "Valor numérico con su unidad (ej: 110 mg/dL)",
-                    "semaforo": "verde, amarillo o rojo",
-                    "explicacion": "Explicación muy sencilla y coloquial de lo que significa este valor"
+                    "nombre": "Nombre del hallazgo o parámetro (ej: 'Hígado', 'Glicemia' o 'Conclusión general')",
+                    "valor": "Descripción del estado o valor (ej: 'Normal', '110 mg/dL' o 'Sin lesiones focales')",
+                    "semaforo": "verde (si está normal o sano), amarillo (si hay algo leve a observar) o rojo (si requiere atención médica rápida)",
+                    "explicacion": "Explicación muy sencilla y coloquial de lo que significa este resultado"
                 }}
             ]
         }}
         """
 
         try:
-            # Llamada al modelo utilizando la librería moderna
-            response = client.models.generate_content(
-                model='gemini-3.8-flash',
-                contents=prompt,
+            # Llamada a la API ultrarrápida de Groq
+            response = client.chat.completions.create(
+                model="openai/gpt-oss-20b",
+                messages=[
+                    {"role": "system", "content": "Eres un asistente médico experto que responde estrictamente en formato JSON válido."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"}
             )
             
-            texto_respuesta = response.text
-            
-            # Buscamos automáticamente el bloque JSON delimitado por llaves para evitar errores de formato
-            match_json = re.search(r'\{.*\}', texto_respuesta, re.DOTALL)
-            
-            if match_json:
-                texto_limpio = match_json.group(0)
-            else:
-                texto_limpio = texto_respuesta.replace("```json", "").replace("```", "").strip()
-            
-            # Intentamos decodificar el JSON de manera segura
-            try:
-                datos_procesados = json.loads(texto_limpio)
-            except json.JSONDecodeError:
-                print(f"Error: La IA no devolvió un JSON válido. Respuesta recibida: {texto_respuesta}")
-                return render(request, 'exams/subir_examen.html', {'error': 'El formato devuelto por la IA no fue válido. Inténtalo de nuevo.'})
+            texto_respuesta = response.choices[0].message.content
+            datos_procesados = json.loads(texto_respuesta)
 
             nuevo_examen = ExamenHistorial.objects.create(
                 titulo=datos_procesados.get("titulo", "Examen Médico"),
@@ -82,8 +73,8 @@ def subir_examen(request):
             return redirect('detalle_examen', examen_id=nuevo_examen.id)
 
         except Exception as e:
-            print(f"Error al conectar con la IA: {e}")
-            return render(request, 'exams/subir_examen.html', {'error': 'No se pudo procesar el examen con la inteligencia artificial.'})
+            print(f"Error al conectar con Groq: {e}")
+            return render(request, 'exams/subir_examen.html', {'error': 'No se pudo procesar el examen con Groq.'})
 
     return render(request, 'exams/subir_examen.html')
 
