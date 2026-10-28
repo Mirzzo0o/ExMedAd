@@ -4,9 +4,8 @@ from openai import OpenAI
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import ExamenHistorial, ParametroExamen
 
-# Inicializamos el cliente apuntando a Groq con tu API Key de Groq
 client = OpenAI(
-    api_key="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",  # Reemplaza con tu clave que empieza por gsk_
+    api_key="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",
     base_url="https://api.groq.com/openai/v1"
 )
 
@@ -43,7 +42,6 @@ def subir_examen(request):
         """
 
         try:
-            # Llamada a la API ultrarrápida de Groq
             response = client.chat.completions.create(
                 model="openai/gpt-oss-20b",
                 messages=[
