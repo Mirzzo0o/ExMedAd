@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Historial de Exámenes - ExMedAd</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container my-5" style="max-width: 900px;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="fw-bold text-primary display-5">📋 Mi Historial Médico</h1>
+            <a href="{% url 'subir_examen' %}" class="btn btn-success btn-lg fw-bold fs-4">+ Analizar Nuevo Examen</a>
+        </div>
+
+        {% for item in examenes %}
+            <div class="card p-4 mb-3 shadow-sm border-2 rounded-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="fw-bold text-primary mb-1">{{ item.titulo }}</h2>
+                        <p class="text-muted fs-5 mb-2">Registrado el: {{ item.fecha|date:"d/m/Y H:i" }}</p>
+                        <p class="fs-5 text-secondary text-truncate mb-0" style="max-width: 500px;">{{ item.resumen_general }}</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'detalle_examen' item.id %}" class="btn btn-primary btn-lg fw-bold fs-4">Ver Detalle ➔</a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="alert alert-info p-5 text-center rounded-4 fs-3">
+                No tienes ningún examen registrado aún. ¡Sube tu primer examen en el botón de arriba!
+            </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
