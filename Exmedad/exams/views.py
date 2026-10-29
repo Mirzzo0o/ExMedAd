@@ -1,11 +1,13 @@
+import os
 import pypdf
 import json
 from openai import OpenAI
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import ExamenHistorial, ParametroExamen
 
+# Inicialización segura utilizando la variable de entorno del sistema
 client = OpenAI(
-    api_key="",
+    api_key=os.environ.get("GROQ_API_KEY"),
     base_url="https://api.groq.com/openai/v1"
 )
 
