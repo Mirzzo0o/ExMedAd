@@ -5,7 +5,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import ExamenHistorial, ParametroExamen
 
 client = OpenAI(
-    api_key="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",
+    api_key="",
     base_url="https://api.groq.com/openai/v1"
 )
 
