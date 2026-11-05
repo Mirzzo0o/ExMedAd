@@ -2,6 +2,7 @@ import os
 import pypdf
 import json
 from openai import OpenAI
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import ExamenHistorial, ParametroExamen
 
@@ -11,6 +12,7 @@ client = OpenAI(
     base_url="https://api.groq.com/openai/v1"
 )
 
+@login_required
 def subir_examen(request):
     if request.method == 'POST' and request.FILES.get('archivo_pdf'):
         pdf_file = request.FILES['archivo_pdf']
@@ -56,7 +58,9 @@ def subir_examen(request):
             texto_respuesta = response.choices[0].message.content
             datos_procesados = json.loads(texto_respuesta)
 
+            # 1. Asignamos el examen al usuario logueado actualmente
             nuevo_examen = ExamenHistorial.objects.create(
+                usuario=request.user, # <--- ¡Aquí queda conectado con el usuario!
                 titulo=datos_procesados.get("titulo", "Examen Médico"),
                 resumen_general=datos_procesados.get("resumen_general", "Sin resumen")
             )
@@ -78,10 +82,14 @@ def subir_examen(request):
 
     return render(request, 'exams/subir_examen.html')
 
+@login_required
 def historial_examenes(request):
-    examenes = ExamenHistorial.objects.all().order_by('-fecha')
+    # 2. Filtramos para que cada usuario vea estrictamente su propio historial
+    examenes = ExamenHistorial.objects.filter(usuario=request.user).order_by('-fecha')
     return render(request, 'exams/historial.html', {'examenes': examenes})
 
+@login_required
 def detalle_examen(request, examen_id):
-    examen = get_object_or_404(ExamenHistorial, id=examen_id)
+    # 3. Verificamos que el examen pertenezca al usuario logueado antes de mostrarlo
+    examen = get_object_or_404(ExamenHistorial, id=examen_id, usuario=request.user)
     return render(request, 'exams/detalle_examen.html', {'examen': examen})

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Iniciar Sesión - ExMedAd</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f8f9fa; color: #212529; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .card { background-color: #ffffff; border: 2px solid #ced4da; padding: 40px; width: 100%; max-width: 450px; border-radius: 0; }
+        h1 { color: #0d6efd; font-size: 2rem; margin-top: 0; text-align: center; }
+        p.subtitle { text-align: center; color: #6c757d; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; }
+        input[type="text"], input[type="password"] { width: 100%; padding: 12px; font-size: 1.1rem; border: 2px solid #ced4da; border-radius: 0; box-sizing: border-box; background-color: #fff; }
+        input[type="text"]:focus, input[type="password"]:focus { outline: none; border-color: #0d6efd; }
+        .btn-submit { display: block; width: 100%; padding: 14px; font-size: 1.2rem; font-weight: bold; color: #ffffff; background-color: #198754; border: 2px solid #198754; border-radius: 0; cursor: pointer; margin-top: 20px; }
+        .btn-submit:hover { background-color: #157347; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>ExMedAd</h1>
+        <p class="subtitle">Ingrese sus credenciales para acceder</p>
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            <div class="form-group">
+                <label for="{{ form.username.id_for_label }}">Usuario:</label>
+                {{ form.username }}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.password.id_for_label }}">Contraseña:</label>
+                {{ form.password }}
+            </div>
+            <button type="submit" class="btn-submit">Ingresar</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,6 +1,8 @@
+from django.contrib.auth.models import User
 from django.db import models
 
 class ExamenHistorial(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     titulo = models.CharField(max_length=100, default="Examen Médico")
     resumen_general = models.TextField(help_text="Resumen general en palabras sencillas")
     fecha = models.DateTimeField(auto_now_add=True)
