@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ExMedAd - Inicio</title>
     <style>
-        /* Estilos generales limpios y minimalistas */
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: Arial, sans-serif;
             background-color: #f8f9fa;
@@ -25,14 +28,12 @@
             text-align: center;
         }
 
-        /* Tipografía principal */
         h1 {
             color: #0d6efd;
             font-size: 2.8rem;
             margin-top: 0;
             margin-bottom: 20px;
             line-height: 1.2;
-            font-weight: bold;
         }
 
         p {
@@ -42,7 +43,6 @@
             line-height: 1.5;
         }
 
-        /* Contenedor de botones alineados */
         .button-group {
             display: flex;
             justify-content: center;
@@ -50,10 +50,10 @@
             flex-wrap: wrap;
         }
 
-        /* Estilo base para los botones (rectangulares, sin sombras) */
         .btn {
             display: inline-block;
             padding: 15px 30px;
+            font-family: inherit;
             font-size: 1.25rem;
             font-weight: bold;
             text-decoration: none;
@@ -63,7 +63,6 @@
             transition: background-color 0.2s, color 0.2s;
         }
 
-        /* Botón primario (verde para acción principal) */
         .btn-success {
             background-color: #198754;
             color: #ffffff;
@@ -75,7 +74,6 @@
             border-color: #146c43;
         }
 
-        /* Botón secundario (contorno gris) */
         .btn-outline-secondary {
             background-color: transparent;
             color: #6c757d;
@@ -86,18 +84,41 @@
             background-color: #6c757d;
             color: #ffffff;
         }
+
+        .logout-form {
+            margin-top: 40px;
+        }
+
+        .btn-link {
+            background: none;
+            border: none;
+            color: #6c757d;
+            font-family: inherit;
+            font-size: 1.1rem;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .btn-link:hover {
+            color: #212529;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Bienvenido a ExMedAd, Tu Asistente Médico de confianza</h1>
-        <p>Te ayudare a comprender tus exámenes de forma fácil, clara y segura.</p>
+        <h1>Bienvenido a ExMedAd, tu asistente médico de confianza</h1>
+        <p>Te ayudaré a comprender tus exámenes de forma fácil, clara y segura.</p>
 
         <div class="button-group">
             <a href="{% url 'subir_examen' %}" class="btn btn-success">Revisar mi Examen</a>
-            <a href="{% url 'ver_asistente' %}" class="btn btn-outline-secondary">Hablar con el Asistente</a>
+            <a href="{% url 'asistente_chat' %}" class="btn btn-outline-secondary">Hablar con el Asistente</a>
         </div>
+
+        <form method="post" action="{% url 'logout' %}" class="logout-form">
+            {% csrf_token %}
+            <button type="submit" class="btn-link">Cerrar sesión</button>
+        </form>
     </div>
 
 </body>

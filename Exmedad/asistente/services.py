@@ -13,15 +13,20 @@ MENSAJE_SIN_CONEXION = (
     "Si es algo urgente sobre tu salud, comunícate directamente con tu médico o con un servicio de emergencia. 💙"
 )
 
+MENSAJE_ALTA_DEMANDA = (
+    "El asistente está recibiendo muchas consultas simultáneas en este momento. "
+    "Por favor, intenta presionar 'Preguntar' nuevamente en unos segundos. 💙"
+)
+
 MENSAJE_ERROR_GENERAL = (
     "Perdón, tuve un pequeño problema para responderte. "
     "¿Podrías intentarlo otra vez en un momento? "
     "Si es algo urgente sobre tu salud, consulta a tu médico. 💙"
 )
 
-MAX_INTENTOS = 3
-ESPERA_SEGUNDOS = 1
-CODIGOS_REINTENTABLES = (429, 500, 503, 504)
+MAX_INTENTOS = 2
+# AQUÍ ESTÁ EL MODELO EXACTO QUE PIDE EL ERROR
+MODELOS_DISPONIBLES = ['gemini-3.8-flash']
 
 ERRORES_DE_RED = (
     ConnectionError,
@@ -32,9 +37,17 @@ ERRORES_DE_RED = (
     httpx.NetworkError,
 )
 
-
 def consultar_asistente_ia(pregunta_usuario: str) -> str:
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        print("[ERROR ExMedAd] GEMINI_API_KEY no encontrada en las variables de entorno.")
+        return "Error: No se encontró la API Key de Gemini configurada en el servidor."
+
+    try:
+        client = genai.Client(api_key=api_key)
+    except Exception as e:
+        print(f"[ERROR ExMedAd] Fallo al inicializar el cliente Gemini: {e}")
+        return MENSAJE_ERROR_GENERAL
 
     configuracion_sistema = types.GenerateContentConfig(
         system_instruction=(
@@ -45,34 +58,37 @@ def consultar_asistente_ia(pregunta_usuario: str) -> str:
         temperature=0.7,
     )
 
-    for intento in range(1, MAX_INTENTOS + 1):
-        try:
-            response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=pregunta_usuario,
-                config=configuracion_sistema,
-            )
+    for nombre_modelo in MODELOS_DISPONIBLES:
+        for intento in range(1, MAX_INTENTOS + 1):
+            try:
+                response = client.models.generate_content(
+                    model=nombre_modelo,
+                    contents=pregunta_usuario,
+                    config=configuracion_sistema,
+                )
 
-            if not response.text:
-                return MENSAJE_ERROR_GENERAL
+                if response and response.text:
+                    return response.text
 
-            return response.text
+            except ERRORES_DE_RED as e:
+                print(f"[ERROR RED] Modelo {nombre_modelo} Intento {intento}: {e}")
+                if intento == MAX_INTENTOS and nombre_modelo == MODELOS_DISPONIBLES[-1]:
+                    return MENSAJE_SIN_CONEXION
+                time.sleep(1)
 
-        except ERRORES_DE_RED as e:
-            logger.warning("Intento %d/%d: error de conexión: %s", intento, MAX_INTENTOS, e)
-            if intento == MAX_INTENTOS:
-                return MENSAJE_SIN_CONEXION
-            time.sleep(ESPERA_SEGUNDOS * intento)
+            except errors.APIError as e:
+                codigo = getattr(e, "code", None)
+                print(f"[ERROR API GEMINI] Modelo {nombre_modelo} Intento {intento}: {e}")
+                # Manejar 429 (Too Many Requests) o 503 (Service Unavailable)
+                if codigo in (429, 503):
+                    if intento == MAX_INTENTOS and nombre_modelo == MODELOS_DISPONIBLES[-1]:
+                        return MENSAJE_ALTA_DEMANDA
+                    time.sleep(1)
+                    continue # Reintenta si quedan intentos
+                break # Si es otro error de API, sale del loop de intentos
 
-        except errors.APIError as e:
-            logger.warning("Intento %d/%d: error de la API: %s", intento, MAX_INTENTOS, e)
-            if getattr(e, "code", None) in CODIGOS_REINTENTABLES and intento < MAX_INTENTOS:
-                time.sleep(ESPERA_SEGUNDOS * intento)
-                continue
-            return MENSAJE_ERROR_GENERAL
+            except Exception as e:
+                print(f"[ERROR INESPERADO]: {e}")
+                break
 
-        except Exception as e:
-            logger.exception("Error inesperado: %s", e)
-            return MENSAJE_ERROR_GENERAL
-
-    return MENSAJE_ERROR_GENERAL
+    return MENSAJE_ALTA_DEMANDA

@@ -1,0 +1,90 @@
+<style>
+    html {
+        padding-top: 64px;
+        box-sizing: border-box;
+    }
+
+    body {
+        min-height: calc(100vh - 64px) !important;
+    }
+
+    .exmedad-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 64px;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 16px;
+        background-color: #ffffff;
+        border-bottom: 2px solid #ced4da;
+        font-family: Arial, sans-serif;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .exmedad-nav .nav-marca {
+        color: #0d6efd;
+        font-size: 1.4rem;
+        font-weight: bold;
+        text-decoration: none;
+        margin-right: 12px;
+    }
+
+    .exmedad-nav a.nav-link,
+    .exmedad-nav button.nav-link {
+        display: inline-block;
+        padding: 10px 14px;
+        font-family: inherit;
+        font-size: 1.05rem;
+        font-weight: bold;
+        color: #495057;
+        background: none;
+        border: 2px solid transparent;
+        border-radius: 4px;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .exmedad-nav a.nav-link:hover,
+    .exmedad-nav button.nav-link:hover {
+        background-color: #f1f3f5;
+    }
+
+    .exmedad-nav a.nav-link.activo {
+        color: #ffffff;
+        background-color: #198754;
+        border-color: #198754;
+    }
+
+    .exmedad-nav .nav-salir {
+        margin-left: auto;
+    }
+
+    .exmedad-nav .nav-salir form {
+        margin: 0;
+    }
+
+    @media (max-width: 600px) {
+        .exmedad-nav .nav-marca {
+            display: none;
+        }
+    }
+</style>
+
+<nav class="exmedad-nav" aria-label="Navegación principal">
+    <a href="{% url 'home' %}" class="nav-marca">ExMedAd</a>
+    <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}activo{% endif %}">Inicio</a>
+    <a href="{% url 'subir_examen' %}" class="nav-link {% if request.resolver_match.url_name == 'subir_examen' %}activo{% endif %}">Revisar examen</a>
+    <a href="{% url 'historial_examenes' %}" class="nav-link {% if request.resolver_match.url_name == 'historial_examenes' %}activo{% endif %}">Historial</a>
+    <a href="{% url 'asistente_chat' %}" class="nav-link {% if request.resolver_match.url_name == 'asistente_chat' %}activo{% endif %}">Asistente</a>
+    <div class="nav-salir">
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="nav-link">Cerrar sesión</button>
+        </form>
+    </div>
+</nav>

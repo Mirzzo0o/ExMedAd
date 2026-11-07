@@ -2,12 +2,48 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Asistente Virtual</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExMedAd - Asistente Virtual</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class="bg-light p-5 text-center">
-    <h1>Asistente Virtual (IA)</h1>
-    <p>Espacio reservado para conectar el chat de ayuda.</p>
-    <a href="{% url 'home' %}" class="btn btn-secondary mt-3">Volver al Inicio</a>
+<body class="bg-light p-3 p-md-5">
+    {% include 'core/navbar.html' %}
+
+    <div class="container bg-white rounded shadow-sm p-4" style="max-width: 700px;">
+        <h1 class="text-primary text-center fw-bold">Asistente Virtual</h1>
+        <p class="text-secondary text-center fs-5 mb-4">Escribe tu duda y te responderé de forma sencilla.</p>
+
+        <form method="post" id="form-asistente">
+            {% csrf_token %}
+            <label for="pregunta" class="form-label fw-bold fs-5">Tu pregunta:</label>
+            <textarea name="pregunta" id="pregunta" class="form-control form-control-lg" rows="4" maxlength="1000" required placeholder="Por ejemplo: ¿Qué significa que tenga la glicemia alta?">{{ pregunta }}</textarea>
+            <button type="submit" id="btn-enviar" class="btn btn-success btn-lg w-100 mt-3 fw-bold">Preguntar</button>
+        </form>
+
+        {% if respuesta %}
+            <div class="bg-light border rounded p-3 mt-4 text-secondary">
+                <strong>Tu pregunta:</strong> {{ pregunta }}
+            </div>
+            <div class="alert alert-primary mt-3 fs-5" role="status">
+                <h2 class="fs-6 fw-bold text-primary">Respuesta</h2>
+                {{ respuesta|linebreaksbr }}
+            </div>
+        {% endif %}
+
+        <p class="text-muted text-center small mt-4">
+            Este asistente no reemplaza a tu médico. Ante cualquier duda grave o urgencia, consulta a un profesional de salud.
+        </p>
+
+        <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-lg w-100 mt-2">Volver al Inicio</a>
+    </div>
+
+    <script>
+        document.getElementById('form-asistente').addEventListener('submit', function () {
+            var boton = document.getElementById('btn-enviar');
+            boton.disabled = true;
+            boton.textContent = 'Pensando...';
+        });
+    </script>
+
 </body>
-</html>
+</html> 

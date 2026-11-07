@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Detalle del Examen - ExMedAd</title>
     <style>
-        /* Estilos generales limpios y minimalistas */
         body {
             font-family: Arial, sans-serif;
             background-color: #f8f9fa;
@@ -18,7 +17,6 @@
             margin: 0 auto;
         }
 
-        /* Botón de volver */
         .btn-volver {
             display: inline-block;
             padding: 10px 20px;
@@ -36,7 +34,6 @@
             color: #ffffff;
         }
 
-        /* Tarjetas rectangulares sin sombras */
         .card {
             background-color: #ffffff;
             border: 2px solid #ced4da;
@@ -45,7 +42,6 @@
             border-radius: 0;
         }
 
-        /* Tipografía */
         h1 {
             color: #0d6efd;
             font-size: 2.2rem;
@@ -79,12 +75,10 @@
             margin: 20px 0;
         }
 
-        /* Estilos específicos para los semáforos de parámetros */
         .param-card {
             border-left-width: 6px !important;
         }
 
-        /* Colores de semáforo (fondo suave y borde izquierdo marcado) */
         .semaforo-verde {
             border-color: #dee2e6;
             border-left-color: #198754;
@@ -103,7 +97,6 @@
             background-color: #f8d7da;
         }
 
-        /* Encabezado interno de cada parámetro */
         .param-header {
             display: flex;
             justify-content: space-between;
@@ -123,6 +116,8 @@
     </style>
 </head>
 <body>
+    {% include 'core/navbar.html' %}
+
     <div class="container">
         <a href="{% url 'historial_examenes' %}" class="btn-volver">← Volver al Historial</a>
 
