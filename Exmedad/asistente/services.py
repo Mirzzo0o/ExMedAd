@@ -1,9 +1,8 @@
 import os
 import time
 import logging
-import httpx
-from google import genai
-from google.genai import types, errors
+import groq
+from groq import Groq
 
 logger = logging.getLogger(__name__)
 
@@ -13,82 +12,83 @@ MENSAJE_SIN_CONEXION = (
     "Si es algo urgente sobre tu salud, comunícate directamente con tu médico o con un servicio de emergencia. 💙"
 )
 
-MENSAJE_ALTA_DEMANDA = (
-    "El asistente está recibiendo muchas consultas simultáneas en este momento. "
-    "Por favor, intenta presionar 'Preguntar' nuevamente en unos segundos. 💙"
-)
-
 MENSAJE_ERROR_GENERAL = (
     "Perdón, tuve un pequeño problema para responderte. "
     "¿Podrías intentarlo otra vez en un momento? "
     "Si es algo urgente sobre tu salud, consulta a tu médico. 💙"
 )
 
-MAX_INTENTOS = 2
-# AQUÍ ESTÁ EL MODELO EXACTO QUE PIDE EL ERROR
-MODELOS_DISPONIBLES = ['gemini-3.8-flash']
+MODELO = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+MAX_INTENTOS = 3
+ESPERA_SEGUNDOS = 1
+TIMEOUT_SEGUNDOS = 20
 
 ERRORES_DE_RED = (
     ConnectionError,
     TimeoutError,
     OSError,
-    httpx.ConnectError,
-    httpx.TimeoutException,
-    httpx.NetworkError,
+    groq.APIConnectionError,
+    groq.APITimeoutError,
 )
 
-def consultar_asistente_ia(pregunta_usuario: str) -> str:
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        print("[ERROR ExMedAd] GEMINI_API_KEY no encontrada en las variables de entorno.")
-        return "Error: No se encontró la API Key de Gemini configurada en el servidor."
+SYSTEM_INSTRUCTION = (
+    "Eres el asistente virtual de ExMedAd, un compañero de apoyo para adultos mayores y sus cuidadores. "
+    "Responde de forma clara, cálida, sencilla y con un lenguaje muy fácil de entender. "
+    "Escribe solo texto plano: no uses asteriscos, tablas, encabezados ni formato Markdown. "
+    "IMPORTANTE: No des diagnósticos definitivos ni recetes medicamentos; siempre recuerda consultar a un médico profesional ante dudas graves."
+)
 
-    try:
-        client = genai.Client(api_key=api_key)
-    except Exception as e:
-        print(f"[ERROR ExMedAd] Fallo al inicializar el cliente Gemini: {e}")
+
+def _es_reintentable(error):
+    if isinstance(error, groq.RateLimitError):
+        return True
+    return error.status_code >= 500
+
+
+def consultar_asistente_ia(pregunta_usuario: str) -> str:
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        logger.error("Falta la variable de entorno GROQ_API_KEY")
         return MENSAJE_ERROR_GENERAL
 
-    configuracion_sistema = types.GenerateContentConfig(
-        system_instruction=(
-            "Eres el asistente virtual de ExMedAd, un compañero de apoyo para adultos mayores y sus cuidadores. "
-            "Responde de forma clara, cálida, sencilla y con un lenguaje muy fácil de entender. "
-            "IMPORTANTE: No des diagnósticos definitivos ni recetes medicamentos; siempre recuerda consultar a un médico profesional ante dudas graves."
-        ),
-        temperature=0.7,
-    )
+    client = Groq(api_key=api_key, timeout=TIMEOUT_SEGUNDOS, max_retries=0)
 
-    for nombre_modelo in MODELOS_DISPONIBLES:
-        for intento in range(1, MAX_INTENTOS + 1):
-            try:
-                response = client.models.generate_content(
-                    model=nombre_modelo,
-                    contents=pregunta_usuario,
-                    config=configuracion_sistema,
-                )
+    for intento in range(1, MAX_INTENTOS + 1):
+        try:
+            response = client.chat.completions.create(
+                model=MODELO,
+                messages=[
+                    {"role": "system", "content": SYSTEM_INSTRUCTION},
+                    {"role": "user", "content": pregunta_usuario},
+                ],
+                temperature=0.7,
+            )
 
-                if response and response.text:
-                    return response.text
+            texto = ""
+            if response and response.choices:
+                texto = (response.choices[0].message.content or "").strip()
 
-            except ERRORES_DE_RED as e:
-                print(f"[ERROR RED] Modelo {nombre_modelo} Intento {intento}: {e}")
-                if intento == MAX_INTENTOS and nombre_modelo == MODELOS_DISPONIBLES[-1]:
-                    return MENSAJE_SIN_CONEXION
-                time.sleep(1)
+            if not texto:
+                logger.warning("Intento %d/%d: respuesta vacía de Groq", intento, MAX_INTENTOS)
+                return MENSAJE_ERROR_GENERAL
 
-            except errors.APIError as e:
-                codigo = getattr(e, "code", None)
-                print(f"[ERROR API GEMINI] Modelo {nombre_modelo} Intento {intento}: {e}")
-                # Manejar 429 (Too Many Requests) o 503 (Service Unavailable)
-                if codigo in (429, 503):
-                    if intento == MAX_INTENTOS and nombre_modelo == MODELOS_DISPONIBLES[-1]:
-                        return MENSAJE_ALTA_DEMANDA
-                    time.sleep(1)
-                    continue # Reintenta si quedan intentos
-                break # Si es otro error de API, sale del loop de intentos
+            return texto
 
-            except Exception as e:
-                print(f"[ERROR INESPERADO]: {e}")
-                break
+        except ERRORES_DE_RED as e:
+            logger.warning("Intento %d/%d: error de conexión: %s", intento, MAX_INTENTOS, e)
+            if intento == MAX_INTENTOS:
+                return MENSAJE_SIN_CONEXION
+            time.sleep(ESPERA_SEGUNDOS * intento)
 
-    return MENSAJE_ALTA_DEMANDA
+        except groq.APIStatusError as e:
+            logger.warning("Intento %d/%d: error de la API de Groq (%s): %s", intento, MAX_INTENTOS, e.status_code, e)
+            if _es_reintentable(e) and intento < MAX_INTENTOS:
+                time.sleep(ESPERA_SEGUNDOS * intento)
+                continue
+            return MENSAJE_ERROR_GENERAL
+
+        except Exception as e:
+            logger.exception("Error inesperado: %s", e)
+            return MENSAJE_ERROR_GENERAL
+
+    return MENSAJE_ERROR_GENERAL

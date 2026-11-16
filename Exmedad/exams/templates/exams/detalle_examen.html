@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalle del Examen - ExMedAd</title>
     <style>
         body {
@@ -113,6 +114,56 @@
             border: 2px solid #ced4da;
             border-radius: 0;
         }
+
+        .param-estado {
+            display: block;
+            margin-top: 4px;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .param-rango {
+            margin: 0 0 10px;
+            color: #495057;
+        }
+
+        summary {
+            font-size: 1.4rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .leyenda-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 15px;
+            margin-top: 12px;
+            border-style: solid;
+            border-width: 2px 2px 2px 6px;
+            border-radius: 0;
+        }
+
+        .leyenda-item p {
+            margin: 0;
+        }
+
+        .btn-eliminar {
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            color: #b02a37;
+            background-color: transparent;
+            border: 2px solid #b02a37;
+            text-decoration: none;
+            margin-top: 10px;
+            border-radius: 0;
+        }
+
+        .btn-eliminar:hover {
+            background-color: #b02a37;
+            color: #ffffff;
+        }
     </style>
 </head>
 <body>
@@ -129,6 +180,22 @@
             <p style="font-size: 1.25rem; margin-bottom: 0;">{{ examen.resumen_general }}</p>
         </div>
 
+        <div class="card">
+            <details open>
+                <summary>¿Qué significan los colores?</summary>
+                <div class="leyenda-item semaforo-verde">
+                    <p><strong>Verde, normal:</strong> el resultado está dentro de lo esperado.</p>
+                </div>
+                <div class="leyenda-item semaforo-amarillo">
+                    <p><strong>Amarillo, a observar:</strong> hay algo leve que conviene comentar con tu médico en tu próximo control.</p>
+                </div>
+                <div class="leyenda-item semaforo-rojo">
+                    <p><strong>Rojo, atención médica:</strong> conviene que consultes a tu médico pronto para revisar este resultado.</p>
+                </div>
+                <p class="text-muted" style="margin: 15px 0 0; font-size: 1rem;">Los colores son solo una guía y no reemplazan la opinión de tu médico.</p>
+            </details>
+        </div>
+
         <h2>Resultados por Parámetro:</h2>
 
         {% for p in examen.parametros.all %}
@@ -138,14 +205,30 @@
                 {% else %}semaforo-rojo{% endif %}">
                 
                 <div class="param-header">
-                    <h3>{{ p.nombre_parametro }}</h3>
+                    <div>
+                        <h3>{{ p.nombre_parametro }}</h3>
+                        <span class="param-estado">
+                            {% if p.estado_semaforo == 'verde' %}Normal{% elif p.estado_semaforo == 'amarillo' %}A observar{% else %}Atención médica{% endif %}
+                        </span>
+                    </div>
                     <span class="param-valor">Valor: {{ p.valor_obtenido }}</span>
                 </div>
                 
                 <hr>
+                {% if p.rango_referencia and p.rango_referencia != "-" %}
+                    <p class="param-rango"><strong>Rango normal:</strong> {{ p.rango_referencia }}</p>
+                {% else %}
+                    <p class="param-rango"><strong>Rango normal:</strong> No especificado en el examen</p>
+                {% endif %}
                 <p style="margin-bottom: 0;"><strong>¿Qué significa este valor?:</strong> {{ p.explicacion_coloquial }}</p>
             </div>
+        {% empty %}
+            <div class="card">
+                <p style="margin: 0;">No se encontraron resultados en este examen.</p>
+            </div>
         {% endfor %}
+
+        <a href="{% url 'eliminar_examen' examen.id %}" class="btn-eliminar">Eliminar este examen</a>
     </div>
 </body>
 </html>
